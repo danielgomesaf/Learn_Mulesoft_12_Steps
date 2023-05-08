@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="dataweave_basics" doc:id="28c518b6-4f87-46c7-962d-919b283ef5b9" >
+		<ee:transform doc:name="Concatenate two strings into one single string" doc:id="919c499e-6a7d-4894-b9f1-661873110a74" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+output application/json
+---
+{
+	"newString": ("hello " ++ "world")	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform JSON to XML" doc:id="8f511f7e-2de7-44f0-a3f9-3507a785a95f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Create a local variable in Dataweave" doc:id="cfa3b3aa-70a0-44e8-a302-1125a434fffc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var myVar = {
+	"newString": ("hello " ++ "world")	
+}
+
+output application/json
+---
+myVar]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Use Dataweave native functions" doc:id="3488547d-592d-4ee8-9151-70b81c008896" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var myVar = {
+	"sum": sum([3,4,5,3,5,5,5]),
+	"avg": avg([100,50,25,12.5]),
+	"even": isEven(2),
+	"uppercase": upper("Mulesoft"),
+	"lowercase": lower("Mulesoft"),
+	"timestamp": now()
+}
+
+output application/json
+---
+myVar]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="dataweave_files" doc:id="92171159-8821-4da9-be3e-0f9e360f40ab" >
+		<ee:transform doc:name="Read content file from classpath" doc:id="d3e36b02-6691-4fc8-8c79-7d00a5a20166" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+readUrl("classpath://peoples.json")]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Create a metadata type and use it as payload" doc:id="506a90a5-043f-4659-b427-09baa18ead34" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="dataweave_object_array" doc:id="c598eb50-f755-459c-97c8-a2ec9e1fc92a" >
+		<ee:transform doc:name="Map elements from an array into an object" doc:id="d60673c5-2d99-4d21-8d26-ac15f9ea7351" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customArray = ["Mulesoft", "Course", "Fundamentals"]
+
+output application/json
+---
+customArray map (value, index) -> {
+	(index): value ++ "_" ++ index
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Pluck items from an object into an array" doc:id="769696db-164a-466e-badb-c3635f9c33fe" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"0": "Mulesoft",
+	"1": "Course",
+	"2": "Fundamentals"
+}
+
+output application/json
+---
+customObject pluck ((value, key, index) -> value)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Filter an array and return only items that match an expression" doc:id="f762d236-68c3-4aba-97d0-03625e32fb6b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customArray = [1,2,3,4,5,6,7,8,9,10]
+
+output application/json
+---
+customArray filter ((item) -> isEven(item))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Filter an object and return only items that match an expression" doc:id="f84d62f0-4b71-4adb-bccc-b2f8c9da88d9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"0": "Mulesoft",
+	"1": "Course",
+	"2": "Fundamentals"
+}
+
+output application/json
+---
+customObject filterObject ((value, key) -> 
+	isEven(key) and 
+	sizeOf(value) > 8
+)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="dataweave_selectors_over_objects" doc:id="72220fbe-748c-412e-be9f-0bc4429eaf52" >
+		<ee:transform doc:name="Single-Value selector over and object" doc:id="fc56b04f-4faa-4c53-a1a3-ba96eedb63db" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"people": {
+		"person": {
+			"name": "John"
+		},
+		"person": {
+			"name": "Mary"
+		},
+		"person": {
+			"name": "Joseph"
+		},
+		"person": {
+			"name": "Ann"
+		},
+		"person": {
+			"name": "Donna"
+		}
+	}
+}
+
+output application/json
+---
+/*
+ * Selectors only return the value of the first 
+ * matching key, even if the object contains multiple
+ * matching keys
+ * 
+ */
+customObject.people.person]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Multiple-Value selector over and object" doc:id="3059d8ff-82c0-42b3-a219-ddf1e6aa774d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"people": {
+		"person": {
+			"name": "John"
+		},
+		"person": {
+			"name": "Mary"
+		},
+		"person": {
+			"name": "Joseph"
+		},
+		"person": {
+			"name": "Ann"
+		},
+		"person": {
+			"name": "Donna"
+		}
+	}
+}
+
+output application/json
+---
+/*
+ * Inserting * selector before an element will return all 
+ * matching keys of that element
+ * 
+ */
+customObject.people.*person]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Descendant-Value selector over and object" doc:id="b856e6d5-152b-4fa3-88f9-8c9aaa04b74a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"people": {
+		"person": {
+			"name": "John",
+			"address": {
+				"name": "address1"
+			}
+		},
+		"person": {
+			"name": "Mary",
+			"address": {
+				"name": "address2"
+			}
+		},
+		"person": {
+			"name": "Joseph",
+			"address": {
+				"name": "address3"
+			}
+		},
+		"person": {
+			"name": "Ann",
+			"address": {
+				"name": "address4"
+			}
+		},
+		"person": {
+			"name": "Donna",
+			"address": {
+				"name": "address1"
+			}
+		}
+	}
+}
+
+output application/json
+---
+/*
+ * To get all values of a specific key inside any
+ * level of the array, use .. selector before the name of
+ * the desired key
+ * 
+ */
+customObject.people..name]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Key-Value Pair selector over and object" doc:id="38efa873-8ee2-4a84-97fa-b04d24ca6f21" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"people": {
+		"person": {
+			"name": "John",
+			"address": {
+				"name": "address1"
+			}
+		},
+		"person": {
+			"name": "Mary",
+			"address": {
+				"name": "address2"
+			}
+		},
+		"person": {
+			"name": "Joseph",
+			"address": {
+				"name": "address3"
+			}
+		},
+		"person": {
+			"name": "Ann",
+			"address": {
+				"name": "address4"
+			}
+		},
+		"person": {
+			"name": "Donna",
+			"address": {
+				"name": "address1"
+			}
+		}
+	}
+}
+
+output application/json
+---
+/*
+ * Using & selector before a key returns both the key
+ * and value of the matching key-pairs in the context
+ * 
+ */
+customObject.people.*person.&name]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Index selector over an object" doc:id="e2710b3d-d88e-4e85-95ef-a47864d710e8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customObject = {
+	"people": {
+		"person": {
+			"name": "John",
+			"address": {
+				"name": "address1"
+			}
+		},
+		"person": {
+			"name": "Mary",
+			"address": {
+				"name": "address2"
+			}
+		},
+		"person": {
+			"name": "Joseph",
+			"address": {
+				"name": "address3"
+			}
+		},
+		"person": {
+			"name": "Ann",
+			"address": {
+				"name": "address4"
+			}
+		},
+		"person": {
+			"name": "Donna",
+			"address": {
+				"name": "address1"
+			}
+		}
+	}
+}
+
+output application/json
+---
+/*
+ * The selector returns the value of the key-pair in
+ * the specified index
+ * 
+ */
+customObject.people[1]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
