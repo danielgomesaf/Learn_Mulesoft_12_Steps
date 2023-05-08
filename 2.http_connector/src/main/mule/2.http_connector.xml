@@ -28,4 +28,12 @@ vars.customMap filterObject((value) -> not isEmpty(value))]]]></http:query-param
 		<logger level="INFO" doc:name="Log START" doc:id="e0cdfcb2-1ca8-4898-ab56-f5b7ed5a1d3e" message='#["log START - " ++ flow.name]'/>
 		<set-payload value="#[attributes.uriParams.ID]" doc:name="Set Payload" doc:id="549c1120-d74f-4196-841f-dd7eaee4efc9" />
 	</flow>
+	<flow name="exercise" doc:id="f778b07b-68ef-4945-8b5b-30d777d8dbe0" >
+		<http:listener doc:name="HTTP GET" doc:id="457df782-9e48-471c-a3e5-7e88337b0bc8" config-ref="HTTP_Listener_config" path="/exercise/{id}"/>
+		<logger level="INFO" doc:name="Log START" doc:id="0828ce82-73ca-4439-8485-e337c7af4571" message='#["log START - " ++ flow.name]'/>
+		<set-variable value="#[attributes.uriParams.id]" doc:name="+id" doc:id="f3a49d72-8f58-4aa7-adac-136f80145d2a" variableName="id"/>
+		<set-variable value="#[attributes.queryParams]" doc:name="+queryParams" doc:id="f8ba7722-9db0-417f-928d-a3f81efbac50" variableName="queryParams"/>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	uriParams: {id : vars.id},&#10;	queryParams: {(vars.queryParams)} mapObject (value,key) -&gt; {(key): (value)}&#10;}]" doc:name="Set Payload" doc:id="0a515f91-4fb5-4146-9f86-8368760701d4" />
+		<logger level="INFO" doc:name="Log END" doc:id="4051342e-1682-4e41-adaf-bf53beb0da96" message='#["log END - " ++ flow.name]'/>
+	</flow>
 </mule>
