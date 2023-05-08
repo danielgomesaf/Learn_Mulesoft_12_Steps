@@ -352,4 +352,41 @@ customObject.people[1]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 	</flow>
+	<flow name="dataweave_selectors_over_strings" doc:id="062afbcf-e5a4-4a16-974f-1ad78fcf7d31" >
+		<ee:transform doc:name="Index selector over a string" doc:id="c1a069da-d027-46c3-b17c-4255fb614be5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customString = "Mulesoft"
+
+output application/json
+---
+
+/*
+ * The string is broken down into an array where each
+ * character is referenced by an index
+ * 
+ */
+
+customString[0]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Range selector over a string" doc:id="fd23ce3c-7a27-4c7f-a5ac-aab91457406c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customString = "Mulesoft"
+
+output application/json
+---
+
+/*
+ * Limits the ouput of the new string with only the
+ * elements inside the range of indexes
+ * 
+ */
+customString[0 to 3]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
 </mule>
