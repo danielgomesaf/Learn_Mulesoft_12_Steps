@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
 	<flow name="dataweave_basics" doc:id="28c518b6-4f87-46c7-962d-919b283ef5b9" >
 		<ee:transform doc:name="Concatenate two strings into one single string" doc:id="919c499e-6a7d-4894-b9f1-661873110a74" >
 			<ee:message >
@@ -386,6 +387,160 @@ output application/json
  * 
  */
 customString[0 to 3]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="dataweave_lambdas_basics" doc:id="1bffa2e6-68aa-4eda-94a7-7acadd29a227" >
+		<http:listener doc:name="HTTP POST" doc:id="c140da18-97d6-4ac0-9347-57da69282a10" config-ref="HTTP_Listener_config" path="/lambdas" allowedMethods="POST"/>
+		<ee:transform doc:name="Declare and invoke a function" doc:id="a76125db-0227-43df-b986-902bfc58bed5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+fun createString(object) = {
+	description: object.field1 ++ " " ++ object.field2 ++ " " ++ object.field3
+}
+
+output application/json
+---
+{
+	"root": createString(payload)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="22e4669c-3785-45c3-b2c2-de94bc17f078" message="#[payload]"/>
+		<ee:transform doc:name="Use named parameters in lambda" doc:id="79ee183b-863e-4038-9eb1-30932814f691" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customArray = [1,2,3,4,5,6]
+
+output application/json
+
+---
+{
+	
+	"collection": customArray map ((number) -> (number * 100))
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c8ed1985-5d88-4277-ba57-14ed2b3d737f" message="#[payload]"/>
+		<ee:transform doc:name="Use lambda default argument values" doc:id="86438551-f8df-4786-aa10-8f8965911da1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var customArray = ["Mulesoft", "Course", "Fundamentals"]
+
+output application/json
+---
+{
+	collections: customArray map (
+		//$$: index, $: value
+		"$$": $
+	)	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="dataweave_lambdas_intermediate" doc:id="215f6186-4ac7-4bab-adcd-26e775a8c212" >
+		<ee:transform doc:name="Map and merge items in different arrays" doc:id="fd64304a-97c0-49f3-aed2-529b68b7f19e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+//create arrays
+
+var books = [
+	{
+		id: 101,
+		title: "Book 1",
+		price: 20.00
+	},
+	{
+		id: 102,
+		title: "Book 2",
+		price: 30.00
+	},
+	{
+		id: 103,
+		title: "Book 3",
+		price: 50.00
+	},
+]
+
+var authors = [
+	{
+		bookId: 101,
+		author: "Author 1"
+	},
+	{
+		bookId: 102,
+		author: "Author 2"
+	},
+	{
+		bookId: 103,
+		author: "Author 3"
+	}
+]
+
+output application/json
+---
+{
+	books: books map ((item, index) -> 
+		//create a dynamic variable at the map level
+		do {
+			var id = item.id			
+			---
+			{
+				id: id,
+				topic: item.title,
+				cost: item.price,
+				// lets attach the author to the book object
+				(authors filter ($.*bookId contains id) 
+					map (item) -> {
+						//$.*bookId refers to the authors array
+						author: item.author
+					}
+				)
+			}
+		}
+	)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Returns only the values of matching keys within an object" doc:id="d4e63cf3-20ea-4f23-83a7-85a5e27a3941" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var books = [
+	book: {
+		id: 101,
+		title: "Book 1",
+		price: 20.00
+	},
+	book: {
+		id: 102,
+		title: "Book 2",
+		price: 30.00
+	},
+	book: {
+		id: 103,
+		title: "Book 3",
+		price: 50.00
+	},
+]
+
+
+output application/json
+---
+// get all prices lesser than 35.00
+// prices: books.book.*price 
+//		filter (value) -> value < 35.00
+
+// the "?" validates if the key "price" exists
+// if it exists, checks the condition inside
+// brackets
+prices: books.book.*price [?($ < 35.00)]
+]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 	</flow>

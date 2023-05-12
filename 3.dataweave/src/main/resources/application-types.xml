@@ -8,12 +8,32 @@ type peopleData = {| people: {| person: {| name: String |} |} |} {"example": "{\
 
 ]]></types:shape>
     </types:type>
+    <types:type name="lambdasData" format="json">
+      <types:shape format="weave" example="lambdas_example.json"><![CDATA[%dw 2.0
+
+type lambdasData = {|
+  field1: String, 
+  field2: String, 
+  field3: String
+|} {"example": "{\\\"field1\\\":\\\"Mulesoft\\\",\\\"field2\\\":\\\"Course\\\",\\\"field3\\\":\\\"Fundamentals\\\"}"}
+
+]]></types:shape>
+    </types:type>
   </types:catalog>
   <types:enrichment select="#506a90a5-043f-4659-b427-09baa18ead34">
     <types:processor-declaration>
       <types:input-event>
         <types:message>
           <types:payload type="peopleData"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#a76125db-0227-43df-b986-902bfc58bed5">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="lambdasData"/>
         </types:message>
       </types:input-event>
     </types:processor-declaration>
