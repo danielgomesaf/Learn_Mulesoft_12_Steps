@@ -1,0 +1,32 @@
+ {
+  "invoice": {
+    "items": [
+      {
+        "item": //copy description,
+        "quantity": //copy quantity,
+        "unit_price": //copy unit_price,
+        "discount": //if item discount is set to 'YES' get value from constant variable,
+        "cost": ""//apply conditionals to calculate the total item cost whether or not there is a discount
+      },
+      {
+        "item": ""//copy description,
+        "quantity": ""//copy quantity,
+        "unit_price": //copy unit_price,
+        "discount": //if item discount is set to "YES", get value from constant variable,
+        "cost": //apply conditionals to calculate the total item cost whether or not there is a discount 
+      },
+      {
+        "item": //copy description,
+        "quantity": //copy quantity,
+        "unit_price": //copy unit_price,
+        "discount": //if item discount is set to "YES", get value from constant variable,
+        "cost": //apply conditionals to calculate the total item cost whether or not there is a discount 
+      }
+    ],
+    "total": {
+      "total_cost_before_taxation": //calculate total costs of items before taxation, 
+      "taxation": get value from constant variable in %,
+      "total_cost_after_taxation": //calculate total costs of items after taxation,
+    }
+  }
+}

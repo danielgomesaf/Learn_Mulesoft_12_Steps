@@ -544,4 +544,129 @@ prices: books.book.*price [?($ < 35.00)]
 			</ee:message>
 		</ee:transform>
 	</flow>
+	<flow name="dataweave_exercises" doc:id="9a49c248-ed92-48a9-8e67-aed87b087eb6" >
+		<ee:transform doc:name="Exercise One" doc:id="b02accf9-d095-4488-9ccd-681dfaab33e3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var itemsList = {
+	"items":[
+		"item":{
+			"description": "Product1",
+			"quantity": 1,
+			"unit_price": 20,
+			"toDiscount": "No"
+		},
+		"item":{
+			"description": "Product2",
+			"quantity": 2,
+			"unit_price": 30,
+			"toDiscount": "Yes"
+		},
+		"item":{
+			"description": "Product3",
+			"quantity": 3,
+			"unit_price": 40,
+			"toDiscount": "Yes"
+		}
+	]
+}
+
+output application/json
+---
+do {
+	var sum_prices_cost = [17, 10, 20, 5, 10]
+		reduce ((element, accumulated) -> accumulated + element)
+		
+	---
+	
+	{
+		products: itemsList.items.item filter ((item) -> 
+			item.quantity * item.unit_price > sum_prices_cost)
+				map ((item) -> item.description)
+	}
+}
+
+		]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Exercise Two" doc:id="dd4474e0-c54f-40db-99fa-c6214ed82356" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+var tax = 0.23
+
+var discount = 0.10
+
+var itemsList = {
+	"items":[
+		"item":{
+			"description": "Product1",
+			"quantity": 1,
+			"unit_price": 20,
+			"toDiscount": "No"
+		},
+		"item":{
+			"description": "Product2",
+			"quantity": 2,
+			"unit_price": 30,
+			"toDiscount": "Yes"
+		},
+		"item":{
+			"description": "Product3",
+			"quantity": 3,
+			"unit_price": 40,
+			"toDiscount": "Yes"
+		}
+	]
+}
+
+fun getDiscount(item) = 
+	if (upper(item.toDiscount) == "YES") 
+		discount 
+	else 
+		0.0
+
+fun calculateCostWithoutDiscount(item) = 
+	item.quantity * item.unit_price
+
+fun calculateDiscount(item) = 
+	calculateCostWithoutDiscount(item) * getDiscount(item)
+
+fun calculateCostWithDiscount(item) = 
+	calculateCostWithoutDiscount(item) - calculateDiscount(item)
+
+fun calculateCost(item) = 
+	if (getDiscount(item) > 0.0) 
+		calculateCostWithDiscount(item) 
+	else 
+		calculateCostWithoutDiscount(item)
+		
+fun getTotalCostBeforeTaxation() = 
+	sum(itemsList.items.*item map(item) -> calculateCost(item))
+	
+fun getTotalCostAfterTaxation() = 
+	getTotalCostBeforeTaxation() + (getTotalCostBeforeTaxation() * tax)
+
+output application/json
+---
+{
+	invoice: {
+		items: itemsList.items.*item map ((item) -> {
+			item: item.description,
+			quantity: item.quantity,
+			unit_price: item.unit_price,
+			discount: getDiscount(item),
+			cost: calculateCost(item)
+		}),
+		total: {
+			total_cost_before_taxation: getTotalCostBeforeTaxation(),
+			taxation: tax as String {format: "##%"},
+			total_cost_after_taxation: getTotalCostAfterTaxation()
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
 </mule>
