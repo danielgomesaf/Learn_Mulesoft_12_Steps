@@ -1,21 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
-	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e30de8fd-e9fc-416c-b0f0-bb57bcddc1a7" >
-		<http:listener-connection host="0.0.0.0" port="8081" />
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="e30de8fd-e9fc-416c-b0f0-bb57bcddc1a7">
+		<http:listener-connection host="${http.host}"
+			port="${http.port}" />
 	</http:listener-config>
-	<vm:config name="VM_Config_Basic" doc:name="VM Config" doc:id="3f0c5426-990c-4270-8163-ade4a8806c97" >
-		<vm:queues >
+	<vm:config name="VM_Config_Basic" doc:name="VM Config"
+		doc:id="3f0c5426-990c-4270-8163-ade4a8806c97">
+		<vm:queues>
 			<vm:queue queueName="queue.basic" />
 			<vm:queue queueName="queue.a" />
 			<vm:queue queueName="queue.b" />
 			<vm:queue queueName="queue.sync" />
 			<vm:queue queueName="queue.transient" />
-			<vm:queue queueName="queue.persistent" queueType="PERSISTENT" />
+			<vm:queue queueName="queue.persistent"
+				queueType="PERSISTENT" />
+			<vm:queue queueName="queue.exercise" />
 		</vm:queues>
 	</vm:config>
+	<global-property doc:name="Global Property"
+		doc:id="bd55bbe0-ca92-4e5a-b7fd-c07be4599715" name="environment"
+		value="dev" />
+	<configuration-properties
+		doc:name="Common properties"
+		doc:id="31d1b271-ba7d-4c59-b14f-7aa5a50ab466" file="common.yaml" />
+	<configuration-properties
+		doc:name="Environment properties"
+		doc:id="97bd137c-e329-4d0d-8099-ff9841ac0247"
+		file="env-${environment}.yaml" />
 </mule>
