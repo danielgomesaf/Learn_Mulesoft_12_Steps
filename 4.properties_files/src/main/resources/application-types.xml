@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="exerciseData" format="json">
+      <types:shape format="weave" example="exercise_request.json"><![CDATA[%dw 2.0
+
+type exerciseData = {| list: {| word: String |} |} {"example": "{\\\"list\\\":{\\\"word\\\":\\\"mulesoft\\\"}}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#900bc58b-159d-4c63-b5bc-1a6684afa221">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="exerciseData"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

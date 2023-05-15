@@ -1,17 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
-	<flow name="properties_files_basics" doc:id="cae44e27-20f5-4e61-a872-bd97671e8d2a" >
-		<http:listener doc:name="HTTP GET" doc:id="aff1055b-f348-4693-95aa-d462c2f55923" config-ref="HTTP_Listener_config" path="/test1" allowedMethods="GET"/>
-		<logger level="INFO" doc:name="Logger" doc:id="b256fc7a-fd8c-4e52-a61c-5119e9852b1d" message="${myMessage}"/>
-		<set-payload value="${myMessage}" doc:name="Set Payload" doc:id="fe0ac9d9-5e16-4583-9b11-96bb5993063e" />
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="properties_files_basics"
+		doc:id="cae44e27-20f5-4e61-a872-bd97671e8d2a">
+		<http:listener doc:name="HTTP GET"
+			doc:id="aff1055b-f348-4693-95aa-d462c2f55923"
+			config-ref="HTTP_Listener_config" path="/test1" allowedMethods="GET" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="b256fc7a-fd8c-4e52-a61c-5119e9852b1d" message="${myMessage}" />
+		<set-payload value="${myMessage}" doc:name="Set Payload"
+			doc:id="fe0ac9d9-5e16-4583-9b11-96bb5993063e" />
 	</flow>
-	<flow name="properties_files_dynamics" doc:id="4277ba78-9d74-4b98-820b-8e113bf68cbc" >
-		<http:listener doc:name="HTTP GET" doc:id="172b7f48-c858-4da4-ae1f-5a78eab4ce41" config-ref="HTTP_Listener_config" allowedMethods="GET" path="${http.path}"/>
-		<logger level="INFO" doc:name="Logger" doc:id="d17fb9b1-4dce-4332-bb9b-55c30de66e3b" message="#[%dw 2.0&#10;import p from Mule&#10;&#10;&#10;output application/json&#10;&#10;---&#10;{&#10;	message: p('myMessage')	&#10;}]"/>
-		<set-payload value="#[%dw 2.0&#10;import p from Mule&#10;&#10;&#10;output application/json&#10;&#10;---&#10;{&#10;	message: p('myMessage')	&#10;}]" doc:name="Set Payload" doc:id="39e9985c-8844-4b11-a845-4b545a12dafa" />
+	<flow name="properties_files_dynamics"
+		doc:id="4277ba78-9d74-4b98-820b-8e113bf68cbc">
+		<http:listener doc:name="HTTP GET"
+			doc:id="172b7f48-c858-4da4-ae1f-5a78eab4ce41"
+			config-ref="HTTP_Listener_config" allowedMethods="GET"
+			path="${http.path}/dynamics" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="d17fb9b1-4dce-4332-bb9b-55c30de66e3b"
+			message="#[%dw 2.0&#10;import p from Mule&#10;&#10;&#10;output application/json&#10;&#10;---&#10;{&#10;	message: p('myMessage')	&#10;}]" />
+		<set-payload
+			value="#[%dw 2.0&#10;import p from Mule&#10;&#10;&#10;output application/json&#10;&#10;---&#10;{&#10;	message: p('myMessage')	&#10;}]"
+			doc:name="Set Payload" doc:id="39e9985c-8844-4b11-a845-4b545a12dafa" />
+	</flow>
+	<flow name="properties_files_exercises"
+		doc:id="f467fece-2be9-422a-b878-7d3fceae5b07">
+		<http:listener doc:name="HTTP POST"
+			doc:id="a0f6b99f-3b06-4ca9-b8e8-878bd8297cc7"
+			config-ref="HTTP_Listener_config"
+			path="{$http.path}${http.path_exercise}" allowedMethods="POST" />
+		<ee:transform doc:name="Check if env is present"
+			doc:id="900bc58b-159d-4c63-b5bc-1a6684afa221">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+
+import p from Mule
+
+output application/json
+---
+{
+	response: if (payload.list.*word[?(lower($) contains p('word'))]?) ("yes") else ("no")
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>

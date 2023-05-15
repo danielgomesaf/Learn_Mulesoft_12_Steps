@@ -2,5 +2,6 @@ http:
   host: "localhost"
   port: "8081"
   path: "/env"
+  path_exercise: "/exercise"
   
 myMessage: "DEFAULT"
