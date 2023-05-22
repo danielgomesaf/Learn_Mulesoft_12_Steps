@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<flow name="get_all_musics"
+		doc:id="6cd217a2-241f-4dc5-a809-f997b3d01c63">
+		<http:listener doc:name="HTTP GET"
+			doc:id="6606e9d3-9086-441c-bace-75eb208a2971"
+			config-ref="HTTP_Listener_config" path="/musics" allowedMethods="GET" />
+		<db:select doc:name="Get all musics"
+			doc:id="b075b65c-a011-4a49-9344-5f51331bfc48"
+			config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM musics]]></db:sql>
+		</db:select>
+		<set-variable value='#[{&#10;	calling_flow: flow.name,&#10;	message: "A database call to get all songs has been performed"&#10;}]' doc:name="Set message to queue" doc:id="75bbe330-90ca-445b-abbb-776ed2023bac" variableName="queueMessage" />
+		<flow-ref doc:name="publish_message_async_basic" doc:id="e30ed034-7647-416f-a686-de2e68cb6cb8" name="publish_message_async_basic" />
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;&#10;---&#10;payload]" doc:name="Set Payload" doc:id="0c04adcf-919c-48cf-b55c-c3085e6619c9" />
+	</flow>
+	<flow name="insert_new_music" doc:id="400716d2-753b-42d9-a698-dc5506d2d01e" >
+		<http:listener doc:name="HTTP POST" doc:id="f83ca042-e603-4b8a-8df1-a6da5ad83aea" config-ref="HTTP_Listener_config" path="/musics" allowedMethods="POST" />
+		<db:insert doc:name="Insert new music" doc:id="32f110fc-b7ba-4ba5-8f37-858e39f1cfc0" config-ref="Database_Config" autoGenerateKeys="true" >
+			<db:sql ><![CDATA[INSERT INTO musics (name) VALUES (:name)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"name": payload.music.name
+}]]]></db:input-parameters>
+		</db:insert>
+		<set-variable value='#[{&#10;	calling_flow: flow.name,&#10;	message: "A database call to insert a new song has been performed"&#10;}]' doc:name="Set message to queue" doc:id="be49fb29-5c69-48ff-899d-bb971c8078da" variableName="queueMessage"/>
+		<flow-ref doc:name="publish_message_async_basic" doc:id="2d79ba8d-46a6-4e52-8e50-19d7bafedb49" name="publish_message_async_basic"/>
+		<choice doc:name="Validate if insert was successful" doc:id="77f7cc1f-8968-4445-95f2-e2dfed0f2f65" >
+			<when expression="#[payload.affectedRows &gt; 0]" >
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;&#10;---&#10;{&#10;	message: "Music created!",&#10;	response: payload&#10;}]' doc:name="Set Payload with successful message" doc:id="5e097a6c-71c9-4768-9c3b-64d30ce7998f" />
+			</when>
+			<otherwise >
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;&#10;---&#10;{&#10;	message: "Failed to create music",&#10;	response: payload	&#10;}]' doc:name="Set Payload without fail message" doc:id="0ccf1822-5d48-47a2-ba31-b84dd035be95" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="publish_message_async_basic" doc:id="a0961038-ae49-497a-a90d-e9a8ce7da14f" >
+		<http:listener doc:name="HTTP POST" doc:id="646d8596-395d-42cf-b610-2a612031cbd5" config-ref="HTTP_Listener_config" path="/async-basic" allowedMethods="POST" />
+		<logger level="INFO" doc:name="Log START" doc:id="3a1cd573-2aa7-4bed-a809-f82edfb5ab43" message='#[{&#10;	flow_name: vars.queueMessage.calling_flow,&#10;	message: "Log Before Notification"&#10;}]' />
+		<vm:publish queueName="queue.logging.database" doc:id="620c98c1-ebb5-421f-b24c-6801ac3869a6" config-ref="VM_Config" doc:name="Publish to Queue Async" >
+			<vm:content ><![CDATA[#[vars.queueMessage.message]]]></vm:content>
+		</vm:publish>
+		<logger level="INFO" doc:name="Log END" doc:id="95c3aa1c-08f9-4952-9927-86e2d1cfee7d" message='#[{&#10;	flow_name: vars.queueMessage.calling_flow,&#10;	message: "Log After Notification"&#10;}]' />
+	</flow>
+	<flow name="listener_message_async_basic" doc:id="e465466f-6534-4e8f-9d5a-de6dae06b2da" >
+		<vm:listener queueName="queue.logging.database" doc:name="Queue Basic Listener" doc:id="6bb3be5f-fef0-465f-afdb-923b6f6c0bd0" config-ref="VM_Config" />
+		<flow-ref doc:name="print_payload" doc:id="6b7ba386-abc4-4ca7-8bf7-381d5b39db37" name="print_payload" />
+	</flow>
+	<flow name="print_payload" doc:id="cd2bca29-9697-4329-a2c5-09fd57ee309e" >
+		<logger level="INFO" doc:name="Logger" doc:id="53ef4225-2f8a-4a7d-a503-664df9349732" message="#[payload]" />
+	</flow>
+</mule>
