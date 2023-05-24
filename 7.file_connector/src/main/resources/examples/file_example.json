@@ -1,0 +1,13 @@
+{
+	"operation": "APPEND",
+    "file": {
+        "name": "file1",
+        "customer": {
+            "id": 1,
+            "name": "Daniel"
+        }
+    },
+    "metadata": {
+    	"_comments": "The operation types are APPEND, CREATE_NEW OR OVERWRITE"
+    }
+}

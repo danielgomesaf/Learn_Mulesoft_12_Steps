@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="create_new_file"
+		doc:id="49d7bcec-0417-4da6-9d2a-337184061ddc">
+		<http:listener doc:name="HTTP POST"
+			doc:id="dbf4eebb-d333-42fe-8512-a2d12bead915"
+			config-ref="HTTP_Listener_config" path="/write-file"
+			allowedMethods="POST" />
+		<logger level="INFO" doc:name="Print payload input"
+			doc:id="aea10967-95cf-45e2-a7fc-ace519df5557"
+			message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" />
+		<set-variable value="#[payload.file.name]"
+			doc:name="+fileName" doc:id="a632cfa4-4d57-4aba-8de5-7de666e28d69"
+			variableName="fileName" />
+		<set-variable value="#[payload.operation]" doc:name="+operation" doc:id="277f1ad7-615d-4a27-99bf-c1684bad2ada" variableName="operation"/>
+		<ee:transform doc:name="JSON to CSV"
+			doc:id="e57f5bb3-c886-4636-aff3-a8acda6efe71">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv header=false
+---
+{
+	customer_id: payload.file.customer.id,
+	customer_name: payload.file.customer.name,	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write/Modify file" doc:id="a409dc9f-e221-4eb1-a950-2f7d2f70dac8" config-ref="File_Config" path='#["write/" ++ vars.fileName ++ ".csv"]' mode='#[vars.operation]'>
+		</file:write>
+	</flow>
+	<flow name="poll_directory_for_new_file" doc:id="0f8f36f6-c882-4012-b10a-ba77428f4a9d" >
+		<file:listener doc:name="On New or Updated File" doc:id="0c400f96-ede0-41c7-8624-1167f4c766ce" config-ref="File_Config" directory="write" watermarkMode="CREATED_TIMESTAMP">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="4c37f315-e061-4b65-841f-4c0945e947db" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "File created",&#10;	file_data: {&#10;		file_name: attributes.fileName,&#10;		file_path: attributes.path,&#10;		size: attributes.size,&#10;		creation_time: attributes.creationTime,&#10;		last_modified_time: attributes.lastModifiedTime,&#10;		last_access_time: attributes.lastAccessTime,&#10;		is_regular_file: attributes.regularFile,&#10;		is_directory: attributes.directory,&#10;		has_symbolic_link: attributes.symbolicLink&#10;	}&#10;}]'/>
+	</flow>
+	<flow name="poll_directory_for_modified_files" doc:id="ac00a8a7-796a-4f1c-9cf5-f1100e52e97d" >
+		<file:listener doc:name="On New or Updated File" doc:id="d0f5466f-a35a-4215-b35f-6a3d5564592d" config-ref="File_Config" directory="write" watermarkMode="MODIFIED_TIMESTAMP" >
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="bc1f66e2-43d3-4e6b-87e3-3ac835ce802c" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "File modified",&#10;	file_data: {&#10;		file_name: attributes.fileName,&#10;		file_path: attributes.path,&#10;		size: attributes.size,&#10;		creation_time: attributes.creationTime,&#10;		last_modified_time: attributes.lastModifiedTime,&#10;		last_access_time: attributes.lastAccessTime,&#10;		is_regular_file: attributes.regularFile,&#10;		is_directory: attributes.directory,&#10;		has_symbolic_link: attributes.symbolicLink&#10;	}&#10;}]' />
+	</flow>
+	<flow name="move_file_to_new_folder" doc:id="6b4a9cf2-a2e4-4fe6-b3f4-66ce3e4c137c" >
+		<http:listener doc:name="HTTP GET" doc:id="f83a671e-09a7-4f15-b70b-144e952c5aef" config-ref="HTTP_Listener_config" path="/move-file/{fileName}" allowedMethods="GET" />
+		<set-variable value="#[attributes.uriParams.fileName]" doc:name="+fileName" doc:id="091912f3-a286-439f-9216-5a5dbf0c31c9" variableName="fileName"/>
+		<file:move doc:name="Move file to Folder" doc:id="45589d53-5891-4400-8d94-fba3f05eb81a" config-ref="File_Config" sourcePath='#["write/" ++ vars.fileName ++ ".csv"]' targetPath='#["read/"]'/>
+		<logger level="INFO" doc:name="Print message of file moved successfully" doc:id="1b703bab-641d-47aa-8929-43c3c4ad82ae" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "File moved to different folder",&#10;	file_name: vars.fileName&#10;}]'/>
+		<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "File moved to different folder",&#10;	file_name: vars.fileName&#10;}]' doc:name="Set message of file moved successfully" doc:id="7ede2012-ccc7-4c5e-b2c9-0e9f380d6430" />
+	</flow>
+	<flow name="read_file" doc:id="097d9103-14d4-4200-a157-d2c256625db4" >
+		<http:listener doc:name="HTTP GET" doc:id="0a7f9099-58e4-41b6-a476-f74127e37ebe" config-ref="HTTP_Listener_config" path="/read-file/{fileName}" allowedMethods="GET" />
+		<set-variable value="#[attributes.uriParams.fileName]" doc:name="+fileName" doc:id="7bbf5e93-f57d-4056-b0a0-42ebbd698d50" variableName="fileName"/>
+		<file:read doc:name="Read file" doc:id="ea5375f6-4367-4a21-ad14-5e0c92ec3fb8" config-ref="File_Config" path='#["read/" ++ vars.fileName ++ ".csv"]'/>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;var payloadAsArray = payload as Array&#10;var headers = payloadAsArray[0] pluck $$&#10;---&#10;([{&#10;	id: headers[0],&#10;	name: headers[1]&#10;}]) ++&#10;payloadAsArray map ((item) -&gt; {&#10;	id: (item pluck $)[0],&#10;	name: (item pluck $)[1]&#10;})]" doc:name="CSV to JSON" doc:id="ad37416c-178b-4ee4-931e-034f483d5af5" />
+		<logger level="INFO" doc:name="Log retrieved file data" doc:id="9c3000ef-9267-4b2a-aa6d-73f6d8deb070" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "File retrieved",&#10;	file_data: {&#10;		metadata: {&#10;			file_name: attributes.fileName,&#10;			file_path: attributes.path,&#10;			size: attributes.size,&#10;			creation_time: attributes.creationTime,&#10;			last_modified_time: attributes.lastModifiedTime,&#10;			last_access_time: attributes.lastAccessTime,&#10;			is_regular_file: attributes.regularFile,&#10;			is_directory: attributes.directory,&#10;			has_symbolic_link: attributes.symbolicLink			&#10;		},&#10;		content: payload&#10;	}&#10;}]'/>
+		<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "File retrieved",&#10;	file_data: {&#10;		metadata: {&#10;			file_name: attributes.fileName,&#10;			file_path: attributes.path,&#10;			size: attributes.size,&#10;			creation_time: attributes.creationTime,&#10;			last_modified_time: attributes.lastModifiedTime,&#10;			last_access_time: attributes.lastAccessTime,&#10;			is_regular_file: attributes.regularFile,&#10;			is_directory: attributes.directory,&#10;			has_symbolic_link: attributes.symbolicLink			&#10;		},&#10;		content: payload&#10;	}&#10;}]' doc:name="Set payload with file data" doc:id="3b0d8326-d53c-4c39-93ed-21832334697b" />
+	</flow>
+	<flow name="list_files" doc:id="e8783c07-1e52-4e3c-976d-c512f4dc5e6e" >
+		<http:listener doc:name="HTTP GET" doc:id="7f6e4b86-4867-4703-9750-9760c7c943b3" config-ref="HTTP_Listener_config" path="/list-files" allowedMethods="GET"/>
+		<set-variable value="#[attributes.queryParams.folder]" doc:name="+folder" doc:id="4049250b-0486-46f5-b417-670dee1aa0b9" variableName="folder"/>
+		<file:list doc:name="List files in a folder" doc:id="ff6569db-1362-4c8a-921c-78b84c3aca7c" config-ref="File_Config" directoryPath="#[vars.folder]"/>
+		<logger level="INFO" doc:name="Log retrieved files names" doc:id="17af033e-c2cf-475b-b44b-9ffb51082ac0" message="#[%dw 2.0&#10;output application/json&#10;---&#10;files: payload map((value) -&gt; value.attributes.fileName)]"/>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;files: payload map((value) -&gt; value.attributes.fileName)]" doc:name="Set payload with files names" doc:id="248853a8-517d-4b65-a43f-bd33d377172d" />
+	</flow>
+	<flow name="list_files_intermediate" doc:id="eea31de8-1744-4303-af17-5ecec8069504" >
+		<http:listener doc:name="HTTP GET" doc:id="57a2cb42-2143-4567-87be-a7cbe8d001b3" config-ref="HTTP_Listener_config" path="/list-files-intermediate" allowedMethods="GET" />
+		<set-variable value="#[attributes.queryParams.folder]" doc:name="+folder" doc:id="378a5466-3ecf-4788-ac39-a99a3ae7a8c2" variableName="folder" />
+		<file:list doc:name="List files in a folder" doc:id="b33ed441-97d4-4b6f-b96b-ce84334758f6" config-ref="File_Config" directoryPath="#[vars.folder]" />
+		<foreach doc:name="For Each" doc:id="07a0ec60-f68b-4fd1-99d9-ec99397173ad" collection="#[payload]">
+			<choice doc:name="Is file or folder" doc:id="84cf17e4-66ab-4646-a0f2-8c1cb498d9ff" >
+				<when expression="#[attributes.directory == false]">
+					<logger level="INFO" doc:name="Log file" doc:id="9dbed638-ba39-4d7a-be18-a1fe5a8b7a02" message='#[{ message: "Found file " ++ attributes.path}]'/>
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="Log folder" doc:id="0374fd5e-d411-4abc-970b-0d13bd70eb0d" message='#[{ message: "Found folder " ++ attributes.path}]'/>
+				</otherwise>
+			</choice>
+		</foreach>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Set payload with files" doc:id="97f54f5f-0762-455b-adc1-c27bcf5d5fd1" />
+	</flow>
+</mule>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="list_countries"
+		doc:id="aade734a-fa34-4ad5-9d68-a78353c795db">
+		<http:listener doc:name="HTTP GET"
+			doc:id="ebbcee7b-c1a5-48af-99d6-dce023740fc5"
+			config-ref="HTTP_Listener_config" path="/countries"
+			allowedMethods="GET" />
+		<db:select doc:name="List all countries"
+			doc:id="4e6f8c91-fec3-4a11-b1ad-baa062b01289"
+			config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM countries]]></db:sql>
+		</db:select>
+		<set-variable
+			value='#[{&#10;	file_name: "get_all_countries",&#10;	calling_flow: flow.name,&#10;	message: "A database call to get all countries has been performed",&#10;	timestamp: now()&#10;}]'
+			doc:name="Set message to queue"
+			doc:id="cd52b2d2-8e45-4685-8d72-5460a1b3801f"
+			variableName="queueMessage" />
+		<flow-ref doc:name="publish_message_async_basic" doc:id="9d245226-ef98-4632-9be6-4d041027791b" name="publish_message_async_basic" />
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;countries: payload]" doc:name="Set payload with countries data" doc:id="92c85545-6418-44e5-80b5-25e7cdc36704" />
+	</flow>
+	<flow name="create_country" doc:id="32109420-5871-426f-89e8-51026bfaa7b6" >
+		<http:listener doc:name="HTTP POST" doc:id="e43b4045-4701-45c3-9a11-7716848e8219" config-ref="HTTP_Listener_config" path="/countries" allowedMethods="POST"/>
+		<db:insert doc:name="Create new country" doc:id="4f605ff6-5a9e-4a26-9bcd-d9d8d0dcd3b5" config-ref="Database_Config">
+			<db:sql ><![CDATA[INSERT INTO countries (name) VALUES (:name)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{"name": payload.country.name}]]]></db:input-parameters>
+		</db:insert>
+		<set-variable value='#[{&#10;	file_name: "create_new_country",&#10;	calling_flow: flow.name,&#10;	message: "A database call to insert a new country has been performed",&#10;	timestamp: now()&#10;}]' doc:name="Set message to queue" doc:id="74197ccd-a5e1-4a7f-915c-5c4d6735cb91" variableName="queueMessage" />
+		<flow-ref doc:name="publish_message_async_basic" doc:id="bf51ef24-e025-4c15-b803-712c00e6237b" name="publish_message_async_basic"/>
+		<choice doc:name="Validate if insert was successful" doc:id="f0a603fa-0d60-4b91-a1b6-f83be5d9cbad" >
+			<when expression="#[payload.affectedRows &gt; 0]" >
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;&#10;---&#10;{&#10;	message: "Country created!",&#10;	response: payload&#10;}]' doc:name="Set Payload with successful message" doc:id="1ca354e8-c773-48f9-aba8-72caef38a699" />
+			</when>
+			<otherwise >
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;&#10;---&#10;{&#10;	message: "Failed to create country",&#10;	response: payload	&#10;}]' doc:name="Set Payload without fail message" doc:id="817a77e7-b91e-4bf7-9197-e3b33bab87b1" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="publish_message_async_basic" doc:id="6cf5326f-ffa9-4897-9b03-d3a15228c9db" >
+		<http:listener doc:name="HTTP POST" doc:id="6fb852ca-73c2-412a-b730-8adc37951ec1" config-ref="HTTP_Listener_config" path="/async-basic" allowedMethods="POST" />
+		<logger level="INFO" doc:name="Log START" doc:id="eb2ef7c8-d187-4ec9-a04a-ba8213c58761" message='#[{&#10;	flow_name: vars.queueMessage.calling_flow,&#10;	message: "Log Before Notification"&#10;}]' />
+		<vm:publish queueName="queue.logging" doc:id="88113c29-ec9d-4b04-aae4-e01e1cfd19dc" config-ref="VM_Config" doc:name="Publish to Queue Async" >
+			<vm:content ><![CDATA[#[vars.queueMessage]]]></vm:content>
+		</vm:publish>
+		<logger level="INFO" doc:name="Log END" doc:id="7faac1c9-d2c1-4324-a641-a13e311eb8af" message='#[{&#10;	flow_name: vars.queueMessage.calling_flow,&#10;	message: "Log After Notification"&#10;}]' />
+	</flow>
+	<flow name="listener_message_async_basic" doc:id="29891638-2534-4e99-92d0-cd99457f0e7a" >
+		<vm:listener queueName="queue.logging" doc:name="Listener" doc:id="3d6c6ec3-05eb-4bb9-bdd9-c37b96df60b4" config-ref="VM_Config"/>
+		<flow-ref doc:name="write_log_file" doc:id="aafd62e5-b22e-4048-be20-e2bc3f1949da" name="write_log_file" />
+	</flow>
+	<flow name="write_log_file" doc:id="dcc724cc-a641-4a86-bd61-92f630a44aad" >
+		<set-variable value='#["log/" ++ payload.file_name ++ ".csv"]' doc:name="+fileName" doc:id="ef6eef76-fdfb-4163-a56b-e1af0e376011" variableName="fileName" />
+		<ee:transform doc:name="JSON to CSV without header" doc:id="e94b1c43-915a-435c-a00e-b3704b869351">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv header=false
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write log file" doc:id="d78214da-818f-4681-b142-30616d689dc4" config-ref="File_Config" path='#[vars.fileName]' mode="APPEND"/>
+	</flow>
+</mule>
