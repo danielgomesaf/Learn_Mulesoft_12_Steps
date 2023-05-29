@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	
+	<flow name="question-3"
+		doc:id="d5fc6d71-9556-4337-9c8c-777542dd00c3">
+		<http:listener doc:name="Listener"
+			doc:id="3fa4cdac-097f-47e1-ba78-0c8a6dbb5a83"
+			config-ref="HTTP_Listener_config" path="/q-3" allowedMethods="GET" />
+		<set-payload value="Begin main flow"
+			doc:name="Begin Main Flow"
+			doc:id="14625e49-c70a-447d-bb84-ccd3ee15c3be" />
+		<validation:is-number numberType="INTEGER"
+			doc:name="Is number" doc:id="56c59c67-ec60-4bb6-a119-756022e48f9e"
+			value="#[payload]" />
+		<set-payload value="End main flow"
+			doc:name="End main flow"
+			doc:id="514ead5f-7059-483c-a807-4164357e0477" />
+		<error-handler>
+			<on-error-propagate enableNotifications="true"
+				logException="true" doc:name="On Error Propagate"
+				doc:id="90ce95df-2e81-4dbc-b139-7b5d98410052">
+				<set-payload value="Error - main flow"
+					doc:name="Error - main flow"
+					doc:id="e8a225c5-883f-4faf-99d6-d46451c449e2" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="question-4"
+		doc:id="d40fa601-d656-498a-a77a-01f3fe151284">
+		<http:listener doc:name="Listener"
+			doc:id="8d57c61d-d382-432a-af57-9e122b719eca"
+			config-ref="HTTP_Listener_config" path="/q-4" allowedMethods="GET" />
+		<flow-ref doc:name="validate-is-number"
+			doc:id="5ea87b03-6cc4-4d0f-a66c-885623c003a6"
+			name="validate-is-number" />
+		<set-payload value="End main flow"
+			doc:name="Success -  main flow"
+			doc:id="0e53cfd2-0cd5-4ac0-b5f7-62eab8ec6563" />
+	</flow>
+	<flow name="validate-is-number"
+		doc:id="f813204e-96d7-40a6-a654-877387c99e10">
+		<validation:is-number numberType="INTEGER"
+			doc:name="Is number" doc:id="07a5e56e-725e-4d02-b0ff-f985608f53d8"
+			value="#[payload]" />
+		<error-handler>
+			<on-error-propagate enableNotifications="true"
+				logException="true" doc:name="On Error Propagate"
+				doc:id="bd2f660d-a144-45ad-a030-48422d3a9c78">
+				<set-payload value="Error - private flow"
+					doc:name="Error - private flow"
+					doc:id="13efd456-b3be-4002-a87d-737bba2d4171" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="retrieve-artist-by-id"
+		doc:id="89cc1d31-3d2b-4220-90f8-97b5e151c3cc">
+		<http:listener doc:name="HTTP GET"
+			doc:id="f02940f7-730e-44f4-9b64-1bdaaae3f658"
+			config-ref="HTTP_Listener_config" path="/artist/{id}"
+			allowedMethods="GET" />
+		<set-variable value="#[attributes.uriParams.id]" doc:name="+id" doc:id="c040d9fc-2d6a-4fb9-a826-895d904727bf" variableName="id"/>
+		<flow-ref doc:name="validate-id" doc:id="48c315c4-9a3d-4685-916b-5265bb2519e9" name="validate-id" />
+		<http:request method="GET" doc:name="Get artist by id" doc:id="a8545356-c1cc-4760-b00a-2b0b346517d5" config-ref="HTTP_Request_configuration" path="/get-artist/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+		<flow-ref doc:name="validate-artist" doc:id="00012932-ac17-4dce-ac0f-80825e5aeaad" name="validate-artist" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c52c9f4f-748b-4e10-b9cb-07ee58656788" type="ARTIST:MISSING_ID">
+				<logger level="ERROR" doc:name="Log artist missing id message" doc:id="3b5d639e-c16b-4581-891f-43e8b7ab581a" message="On error propagate - ARTIST:MISSING_ID - the artist ID is missing or invalid!!!"/>
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5addf492-7bc9-45a0-85ca-25dcab9e8b9a" type="ARTIST:RESERVED_ID" >
+				<logger level="ERROR" doc:name="Log artist missing id message" doc:id="fffc297d-3baf-4d19-a3f7-caf67ca335b6" message="On error propagate - ARTIST:RESERVED_ID - the artist ID is reserved!!!" />
+			</on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5896ffac-0a18-4a47-b12e-4632d4b39966" type="ANY" >
+				<logger level="ERROR" doc:name="Log artist missing id message" doc:id="e3430d4a-6b31-4ff2-b57c-44f27b4d0515" message="On error propagate - ANY - the artist ID does not exist!!!" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="get-artist" doc:id="ef210207-9ca3-4094-abdc-4a07f4863c4e" >
+		<http:listener doc:name="HTTP GET" doc:id="1da7c0aa-837d-4151-b48b-219f204e30ae" config-ref="HTTP_Listener_config" path="/get-artist/{id}" allowedMethods="GET"/>
+		<db:select doc:name="Select artist by id" doc:id="06f8f7d8-604d-452b-84a0-6cc3ed5b43af" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM artist WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'id': attributes.uriParams.id}]]]></db:input-parameters>
+		</db:select>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Set Payload" doc:id="1c578d3a-c155-4353-bbe7-9e0b7f2f9bb4" />
+	</flow>
+	<flow name="validate-artist" doc:id="c9cf6e29-b181-41da-8c28-fb27365887d5" >
+		<choice doc:name="Validate if artist was found" doc:id="cb711cd6-bb1a-42b1-9c3c-3d7d7d9f0ed7">
+			<when expression="#[isEmpty(payload)]">
+				<raise-error doc:name="Raise error id not found" doc:id="6f447744-7fdd-4e8f-9453-77ba282611ca" type="ARTIST:INVALID_DATA" description="Artist ID does not exist in database. Please add it!" />
+			</when>
+			<otherwise>
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	message: "Artist with id " ++ vars.id as String ++ " found",&#10;	artist: payload&#10;}]' doc:name="Set successful payload" doc:id="1cd4f6d6-63b2-44e8-a8f4-e46c3ca82666" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="validate-id" doc:id="c3254282-c254-40b5-bc0d-915f015b3c79" >
+		<choice doc:name="Validate if id is valid" doc:id="1d8bacce-32e9-4fc1-b3cc-581d4fd19199">
+			<when expression='#[vars.id == "0"]'>
+				<raise-error doc:name="Raise error id = " doc:id="db28e343-cece-47db-9314-db135cc2f4e6" type="ARTIST:MISSING_ID" description="Artist ID is missing or invalid. Please validate!" />
+			</when>
+			<when expression='#[vars.id == "1"]'>
+				<raise-error doc:name="Raise error id reserved" doc:id="957c991f-2f24-4f3a-8443-ce2610dd815f" type="ARTIST:RESERVED_ID" description="Artist ID 1 is Reserved. Please validate!" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log id valid" doc:id="7648836a-aea5-498f-9a17-50886984dc78" message="id valid"/>
+			</otherwise>
+		
+</choice>
+	
+</flow>
+</mule>
