@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+
+	<http:listener-config
+		name="spotify-httpListenerConfig">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+
+	<apikit:config name="spotify-config" api="spotify.raml"
+		outboundHeadersMapName="outboundHeaders"
+		httpStatusVarName="httpStatus" />
+	<configuration doc:name="Configuration"
+		doc:id="4d9e70f7-375a-43ad-8fa5-f4a2fc2a3bfb"
+		doc:description="Set global error handler"
+		defaultErrorHandler-ref="global-error-handler" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="a2c5ab16-8225-4c65-a6a4-46741e9743af" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="admin" database="learn_mulesoft_12_steps" />
+	</db:config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="362dae10-9225-4b75-90ab-778b79077c76" >
+		<vm:queues >
+			<vm:queue queueName="queue.artists.byId.toGet" queueType="PERSISTENT" />
+			<vm:queue queueName="queue.artists.toAdd" queueType="PERSISTENT" />
+			<vm:queue queueName="queue.artists.byId.toDelete" queueType="PERSISTENT" />
+			<vm:queue queueName="queue.artists.byId.toUpdate" queueType="PERSISTENT" />
+		</vm:queues>
+	</vm:config>
+	<error-handler name="global-error-handler" doc:id="e97c7431-7acc-4172-8f73-ad1b18e26fbc" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="df261982-0d25-402f-9082-0d10e44d0dbd" type="ANY">
+			<set-variable value='#[%dw 2.0&#10;output application/java&#10;---&#10;vars.errorType match {&#10;	case "APIKIT:BAD_REQUEST" -&gt; 400&#10;	case "APIKIT:UNAUTHORIZED" -&gt; 401&#10;	case "CLIENT-ID-ENFORCEMENT:INVALID_CLIENT" -&gt; 401&#10;	case "APIKIT:NOT_FOUND" -&gt; 404&#10;	case "APIKIT:METHOD_NOT_ALLOWED" -&gt; 405&#10;	case "APIKIT:NOT_ACCEPTABLE" -&gt; 406&#10;	case "APIKIT:UNSUPPORTED_MEDIA_TYPE" -&gt; 415&#10;	case "APIKIT:NOT_IMPLEMENTED" -&gt; 501&#10;	else -&gt; 500&#10;}]' doc:name="+httpStatus" doc:id="5b7d228d-37aa-41b0-93ff-1444ef6c6100" variableName="httpStatus" />
+			<ee:transform doc:name="Set Error Payload" doc:id="583f80e2-f948-4858-a609-62e0566bf851" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "An error has occurred",
+	content: error
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+
+</mule>

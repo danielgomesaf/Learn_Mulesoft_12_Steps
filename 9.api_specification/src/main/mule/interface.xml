@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	
+	<flow name="spotify-main">
+		<http:listener config-ref="spotify-httpListenerConfig"
+			path="/api/*">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]">
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:response>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]">
+				<http:body>#[payload]</http:body>
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Log Router" doc:id="0210408f-e594-4b53-ad44-1a30f0aeec5c" message='"********************** Log Router ********"'/>
+		<apikit:router config-ref="spotify-config" />
+	</flow>
+	<flow name="spotify-console">
+		<http:listener config-ref="spotify-httpListenerConfig"
+			path="/console/*">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]">
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:response>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]">
+				<http:body>#[payload]</http:body>
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Log Console" doc:id="490fa454-c463-4aa0-aaa3-f43c4dca73dc" message='"********************** Log Console ********"'/>
+		<apikit:console config-ref="spotify-config" />
+	</flow>
+	<flow name="put:\artists\(id):application\json:spotify-config">
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	id: attributes.uriParams.id,&#10;	name: payload.name,&#10;	genre: payload.genre&#10;}]" doc:name="+artistInfo" doc:id="fda98c91-3ab5-4c0f-8691-606ea424cf90" variableName="artistInfo" />
+		<vm:publish-consume doc:name="Sync: Update artist by id" doc:id="14c96613-0da2-43b6-96c3-2c8e5c551ddc" config-ref="VM_Config" queueName="queue.artists.byId.toUpdate">
+			<vm:content ><![CDATA[#[vars.artistInfo]]]></vm:content>
+		</vm:publish-consume>
+	</flow>
+	<flow name="delete:\artists\(id):spotify-config">
+		<set-variable value="#[attributes.uriParams.id]" doc:name="+id" doc:id="0f86f99e-42bc-4c4e-b511-49942ebe005b" variableName="id" />
+		<vm:publish-consume doc:name="Sync: Delete artist by id" doc:id="82382680-cc4f-4ff9-be8c-b37cd2e4071d" config-ref="VM_Config" queueName="queue.artists.byId.toDelete">
+			<vm:content ><![CDATA[#[vars.id]]]></vm:content>
+		</vm:publish-consume>
+	</flow>
+	<flow name="get:\artists:spotify-config">
+		<flow-ref doc:name="get-artists" doc:id="9341787a-ef4b-4d72-9e60-59eea3f40094" name="get-artists"/>
+	</flow>
+	<flow name="get:\artists\(id):spotify-config">
+		<set-variable value="#[attributes.uriParams.id]" doc:name="+id" doc:id="cc338333-201f-4b61-b7e6-54e8684fa8c0" variableName="id" />
+		<vm:publish-consume doc:name="Sync: Get artist by id" doc:id="71d59b61-ddde-4392-a2ae-fd8dc0cef218" config-ref="VM_Config" queueName="queue.artists.byId.toGet">
+			<vm:content ><![CDATA[#[vars.id]]]></vm:content>
+		</vm:publish-consume>
+	</flow>
+	<flow name="post:\artists:application\json:spotify-config">
+		<set-variable value="#[{&#10;	name: payload.name,&#10;	genre: payload.genre&#10;}]" doc:name="+artistInfo" doc:id="24dee9b8-23c1-4104-bc83-c0106d80edbb" variableName="artistInfo" />
+		<vm:publish-consume doc:name="Sync: Add new artist" doc:id="4eb48bf5-06e7-479f-bd48-2b801bc758e9" config-ref="VM_Config" queueName="queue.artists.toAdd">
+			<vm:content ><![CDATA[#[vars.artistInfo]]]></vm:content>
+		</vm:publish-consume>
+	</flow>
+</mule>

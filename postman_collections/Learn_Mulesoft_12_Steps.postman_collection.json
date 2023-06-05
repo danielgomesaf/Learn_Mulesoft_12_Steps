@@ -617,7 +617,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8081/artist/1",
+					"raw": "http://localhost:8081/artist/1000",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -625,7 +625,161 @@
 					"port": "8081",
 					"path": [
 						"artist",
-						"1"
+						"1000"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9.anypoint_platform_api_specification_get_all_artists",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/api/artists",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"artists"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9.anypoint_platform_api_specification_get_artist_by_id",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/api/artists/2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"artists",
+						"2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9.anypoint_platform_api_specification_add_artist",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Carlinhos Brown\",\r\n    \"genre\": \"Pop Music\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/api/artists",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"artists"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9.anypoint_platform_api_specification_update_artist",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Anitta\",\r\n    \"genre\": \"Brazilian Pop\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/api/artists/5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"artists",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9.anypoint_platform_api_specification_delete_artist",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/api/artists/7",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"api",
+						"artists",
+						"7"
 					]
 				}
 			},

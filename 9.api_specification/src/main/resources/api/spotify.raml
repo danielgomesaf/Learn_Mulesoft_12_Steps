@@ -1,0 +1,78 @@
+#%RAML 1.0
+title: Spotify
+
+types:
+  artist: !include exchange_modules/ae7a43ba-d3d0-480b-82c0-1e33d054f84b/artistdatatype/1.0.0/artistdatatype.raml
+
+/artists:
+  displayName: Artists
+  get:
+    description: GET several artists
+    queryParameters:
+        genres:
+            displayName: Artist genre
+            type: string
+            description: Filter artists by genre
+            required: false
+            example: "Rock"
+    responses:
+      200:
+        body:
+          application/json:
+            type: artist []
+            examples:
+              output: !include examples/responses/get-artists.raml
+  post:
+    description: POST new artist info
+    body:
+      application/json:
+        type: artist
+        examples:
+          input: !include examples/requests/add-new-artist.raml
+    responses:
+      201:
+        body:
+          application/json:
+            example: 
+              message: "New artist created"
+
+  /{id}:
+    displayName: Current Artist
+    uriParameters:
+      id:
+        displayName: Artist id
+        description: Spotify artist's id
+        type: string
+        example: "5" 
+    get:
+      description: GET current artist info
+      responses:
+        200:
+          body:
+            application/json:
+              type: artist
+              examples:
+                output: !include examples/responses/get-artist-by-id.raml
+    put:
+      description: UPDATE current artist info
+      body:
+        application/json:
+          type: artist
+          examples:
+            input: !include examples/requests/update-artist.raml
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                message: "Artist info has been updated"  
+    delete:
+      description: DELETE current artist info
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                message: "Artist info as been deleted"
+
+    

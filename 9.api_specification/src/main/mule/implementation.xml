@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<flow name="get-artists" doc:id="bcb23453-f5d2-47b2-824d-b49cd597cb71" >
+		<db:select doc:name="Get all artists" doc:id="e08f5b63-6a9c-4325-880d-8b58b6b2fb41" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM artist]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Set JSON response" doc:id="453b7141-9e8a-46e7-ab42-40705062811b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-artist-by-id" doc:id="ecf3adda-da2b-4c06-a1f1-20118c300a6a" >
+		<vm:listener queueName="queue.artists.byId.toGet" doc:name="Listener for get artist by id" doc:id="61a4ef13-6679-4f41-a6f2-c05f227646bd" config-ref="VM_Config"/>
+		<db:select doc:name="Get artist by id" doc:id="0aac4e9d-c213-4a0a-b63f-e7316acf96e9" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM artist WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{"id": payload}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Validate if artist exists" doc:id="cca6475a-faff-4f47-8356-4b26eff03232" >
+			<when expression="#[isEmpty(payload)]">
+				<ee:transform doc:name="Set not found response" doc:id="a051c163-193b-474e-9819-ed2404f6d507" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ 
+	message: "Artists with id " ++ vars.id as String ++ " not found in database"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set success response" doc:id="a5832dd2-1b23-4c54-8d19-3343d88b38c2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="add-artist" doc:id="c97d81a2-02a6-4f7b-874c-964ec6123e86" >
+		<vm:listener doc:name="Listener for add artist queue" doc:id="fe49ea28-be3a-4d4f-b81e-634f05c1c9b8" config-ref="VM_Config" queueName="queue.artists.toAdd"/>
+		<db:insert doc:name="Insert new artist" doc:id="0ad793bb-6f86-4cc4-a97d-589970472a21" config-ref="Database_Config">
+			<db:sql ><![CDATA[INSERT INTO artist (name, genre) VALUES (:name, :genre)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"name": payload.name,
+	"genre": payload.genre
+}]]]></db:input-parameters>
+		</db:insert>
+		<choice doc:name="Validate if artists was inserted successfully" doc:id="d8202f7e-bfb2-4e8a-b990-8be5068cdbee" >
+			<when expression="#[payload.affectedRows == 1]">
+				<ee:transform doc:name="Set JSON Response" doc:id="29afb74c-b818-4adc-8d24-6d382107c348">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Artist added successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<raise-error doc:name="CUSTOM_DB:INSERT_FAILED" doc:id="1e196c42-dacc-4858-bb3f-6b65e4985495" type="CUSTOM_DB:INSERT_FAILED" description="An error occurred when trying to insert a new artist"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="update-artist" doc:id="c57a5a65-3fab-4196-8927-a5a979dd2473" >
+		<vm:listener queueName="queue.artists.byId.toUpdate" doc:name="Listener for update artist by id" doc:id="871e39ff-ba87-43d3-a9ea-f48dda852a4e" config-ref="VM_Config"/>
+		<db:update doc:name="Update artist info" doc:id="40a2c5d2-6cb0-444b-beba-e8b0a9242b6f" config-ref="Database_Config">
+			<db:sql ><![CDATA[UPDATE artist SET name = :name, genre = :genre WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"id": payload.id,
+	"name": payload.name,
+	"genre": payload.genre
+}]]]></db:input-parameters>
+		</db:update>
+		<choice doc:name="Validate if artists was inserted successfully" doc:id="d834447d-4f2d-4ee7-ac29-cd2ff1604bfe" >
+			<when expression="#[payload.affectedRows == 1]" >
+				<ee:transform doc:name="Set JSON Response" doc:id="28bb5a68-beca-4558-b6d7-252d23b58b59" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Artist updated successfully"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<raise-error doc:name="CUSTOM_DB:UPDATE_FAILED" doc:id="40dc47ce-bf6d-4c30-b3d0-2a1dc3c61f0d" type="CUSTOM_DB:UPDATE_FAILED" description="An error occurred when trying to update an artist" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="delete-artists" doc:id="6a660c12-40d8-4009-93f0-fcd6c3cc8201" >
+		<vm:listener queueName="queue.artists.byId.toDelete" doc:name="Listener for delete artist by id" doc:id="ef4ccfb3-6dd5-4560-a2d1-48bad49d054b" config-ref="VM_Config"/>
+		<db:delete doc:name="Delete artist info" doc:id="a03ab0be-aa4f-438f-ab4e-902381673ac2" config-ref="Database_Config">
+			<db:sql ><![CDATA[DELETE FROM artist WHERE id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"id": payload
+}]]]></db:input-parameters>
+		</db:delete>
+		<choice doc:name="Choice" doc:id="59b9dfc6-1bdb-40a9-a3d7-65770074e414" >
+			<when expression="#[payload == 0]">
+				<ee:transform doc:name="Set artist not found response" doc:id="0a055700-4830-49de-a37a-6ab29b4446b9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Artist not found in database"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set successful response" doc:id="f1871419-88a2-4c2e-b512-41e763d25484">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Artist deleted successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
